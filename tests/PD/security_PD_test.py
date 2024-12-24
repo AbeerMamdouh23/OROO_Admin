@@ -33,7 +33,7 @@ class TestSecurity:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # Resolve the file path from the project root
-        file_path = os.path.join(project_root, 'resources\\dummytest.txt')
+        file_path = os.path.join(project_root, 'resources/dummytest.txt')
         logger.info(file_path)
         security_page.enter_file_path(file_path)
         security_page.click_upload_file_button()
@@ -64,7 +64,7 @@ class TestSecurity:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # Resolve the file path from the project root
-        file_path = os.path.join(project_root, 'resources\\dummytest.txt')
+        file_path = os.path.join(project_root, 'resources/dummytest.txt')
         security_page.enter_file_path(file_path)
 
         security_page.click_upload_file_button()
