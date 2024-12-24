@@ -1,0 +1,199 @@
+name: Selenium Daily Run
+
+on:
+  workflow_dispatch:  # Enables manual triggering of the workflow
+  schedule:
+    # Runs daily at 06:00 UTC
+    - cron: '0 6 * * *'
+
+jobs:
+  selenium-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env_name: [dev, staging, production] # Run tests for each environment in parallel
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Install Allure
+      - name: Install Allure
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-jre
+          curl -sLo allure.tgz https://github.com/allure-framework/allure2/releases/download/2.32.0/allure-2.32.0.tgz
+          tar -xzvf allure.tgz -C /opt/
+          sudo ln -sf /opt/allure-2.32.0/bin/allure /usr/local/bin/allure
+          echo "Verifying Allure installation..."
+          /usr/local/bin/allure --version
+
+      # Run Selenium tests for the specified environment
+      - name: Run tests for ${{ matrix.env_name }}
+        env:
+          TEST_ENV: ${{ matrix.env_name }}
+        run: |
+          echo "Running tests in $TEST_ENV"
+          case "$TEST_ENV" in
+            "dev") BASE_URL="https://admin.dev-ooro.co.uk/" ;;
+            "staging") BASE_URL="https://admin.staging-ooro.co.uk/" ;;
+            "production") BASE_URL="https://admin.ooro.co.uk/" ;;
+          esac
+          echo "Using BASE_URL: $BASE_URL"
+          
+          # Run pytest with output directed to JUnit XML and count tests
+          TEST_RESULTS="test-output/results_${TEST_ENV}.xml"
+          export BASE_URL
+          pytest tests/ --junitxml="${TEST_RESULTS}" || true
+          
+          # Parse pytest results and save status
+          TESTS_TOTAL=$(grep -oP '(?<=tests=")\d+' "${TEST_RESULTS}" | head -1)
+          TESTS_FAILED=$(grep -oP '(?<=failures=")\d+' "${TEST_RESULTS}" | head -1)
+          TESTS_ERRORS=$(grep -oP '(?<=errors=")\d+' "${TEST_RESULTS}" | head -1)
+          TOTAL_FAILED=$((TESTS_FAILED + TESTS_ERRORS))
+          TESTS_PASSED=$((TESTS_TOTAL - TOTAL_FAILED))
+          
+          STATUS_MESSAGE="Tests passed: ${TESTS_PASSED}/${TESTS_TOTAL}"
+          
+          echo "${STATUS_MESSAGE}" > "test-output/status-${TEST_ENV}.txt"
+        continue-on-error: true
+
+      # Generate Allure Report for the respective environment
+      - name: Generate Allure Report for ${{ matrix.env_name }}
+        run: |
+          allure generate test-output/allure-results -o test-output/allure-report-${{ matrix.env_name }} --single-file --clean || true
+        continue-on-error: true
+
+      # Rename Allure report index.html
+      - name: Rename Allure Report for ${{ matrix.env_name }}
+        run: |
+          mv test-output/allure-report-${{ matrix.env_name }}/index.html test-output/allure-report-${{ matrix.env_name }}/allure-report-${{ matrix.env_name }}.html
+        continue-on-error: true
+
+      # Upload status message and Allure report artifacts
+      - name: Upload status and Allure report artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: status-${{ matrix.env_name }}
+          path: test-output/status-${{ matrix.env_name }}.txt
+      - name: Upload Allure report artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report-${{ matrix.env_name }}
+          path: test-output/allure-report-${{ matrix.env_name }}
+
+
+  send-reports:
+    runs-on: ubuntu-latest
+    needs: selenium-test  # Wait for all selenium-test jobs to complete
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Download all statuses and reports
+      - name: Download status files
+        uses: actions/download-artifact@v3
+        with:
+          name: status-dev
+          path: test-output/status-dev
+      - uses: actions/download-artifact@v3
+        with:
+          name: status-staging
+          path: test-output/status-staging
+      - uses: actions/download-artifact@v3
+        with:
+          name: status-production
+          path: test-output/status-production
+
+      - name: Download Allure Reports
+        uses: actions/download-artifact@v3
+        with:
+          name: allure-report-dev
+          path: test-output/allure-report-dev
+      - uses: actions/download-artifact@v3
+        with:
+          name: allure-report-staging
+          path: test-output/allure-report-staging
+      - uses: actions/download-artifact@v3
+        with:
+          name: allure-report-production
+          path: test-output/allure-report-production
+
+      # Consolidate status messages
+      - name: Create summary of test statuses
+        run: |
+          echo "Generating test status summary..."
+          summarize_status() {
+            STATUS=$1
+            TOTAL=$2
+            PASSED=$3
+            if [ "$PASSED" -eq "$TOTAL" ]; then
+              COLOR="🟢"  # All tests passed
+            elif [ "$PASSED" -eq 0 ]; then
+              COLOR="🔴"    # All tests failed
+            else
+              COLOR="🟠" # Some tests failed
+            fi
+            echo "${STATUS}: ${COLOR} Tests passed: ${PASSED}/${TOTAL}"
+          }
+
+          # Parse and generate statuses
+          DEV_STATUS=$(cat test-output/status-dev/status-dev.txt)
+          STAGING_STATUS=$(cat test-output/status-staging/status-staging.txt)
+          PRODUCTION_STATUS=$(cat test-output/status-production/status-production.txt)
+
+          DEV_TOTAL=$(echo $DEV_STATUS | grep -oP '(?<=/)\d+')
+          DEV_PASSED=$(echo $DEV_STATUS | grep -oP '\d+(?=/)')
+
+          STAGING_TOTAL=$(echo $STAGING_STATUS | grep -oP '(?<=/)\d+')
+          STAGING_PASSED=$(echo $STAGING_STATUS | grep -oP '\d+(?=/)')
+
+          PRODUCTION_TOTAL=$(echo $PRODUCTION_STATUS | grep -oP '(?<=/)\d+')
+          PRODUCTION_PASSED=$(echo $PRODUCTION_STATUS | grep -oP '\d+(?=/)')
+
+          echo "$(summarize_status "DEV" $DEV_TOTAL $DEV_PASSED)" > test-output/summary.txt
+          echo "$(summarize_status "STAGING" $STAGING_TOTAL $STAGING_PASSED)" >> test-output/summary.txt
+          echo "$(summarize_status "PRODUCTION" $PRODUCTION_TOTAL $PRODUCTION_PASSED)" >> test-output/summary.txt
+
+          echo "Generated summary:"
+          cat test-output/summary.txt
+
+          # Safely export multi-line content for use in other steps
+          SUMMARY=$(<test-output/summary.txt)
+          echo "STATUS_SUMMARY<<EOF" >> $GITHUB_ENV
+          echo "$SUMMARY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # Send Allure reports and statuses to Slack
+      - name: Send Allure Reports to Slack
+        uses: MeilCli/slack-upload-file@v4
+        with:
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_type: 'html'
+          file_path: |
+            test-output/allure-report-dev/allure-report-dev.html
+            test-output/allure-report-staging/allure-report-staging.html
+            test-output/allure-report-production/allure-report-production.html
+          file_name: |
+            allure-report-dev.html
+            allure-report-staging.html
+            allure-report-production.html
+          initial_comment: |
+            Automation Testing Status for Admin Portal:
+            ${{ env.STATUS_SUMMARY }}
+
