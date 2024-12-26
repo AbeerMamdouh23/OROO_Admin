@@ -194,6 +194,6 @@ jobs:
             allure-report-staging.html
             allure-report-production.html
           initial_comment: |
-            Automation Testing Status for Admin Portal:
+            Automation Testing Status for <b>Admin Portal</b>:
             ${{ env.STATUS_SUMMARY }}
 
