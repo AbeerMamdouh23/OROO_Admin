@@ -133,6 +133,32 @@ jobs:
           name: allure-report-production
           path: test-output/allure-report-production
 
+      
+      # Aggregate failure counts across all environments
+      - name: Aggregate failures
+        id: aggregate-failures
+        run: |
+          # Extract the total number of tests and the number of passed tests
+          DEV_TOTAL=$(cat test-output/status-dev/status-dev.txt | grep -oP '(?<=/)\d+')
+          DEV_PASSED=$(cat test-output/status-dev/status-dev.txt | grep -oP '\d+(?=/)')
+          DEV_FAILED=$((DEV_TOTAL - DEV_PASSED))
+      
+          STAGING_TOTAL=$(cat test-output/status-staging/status-staging.txt | grep -oP '(?<=/)\d+')
+          STAGING_PASSED=$(cat test-output/status-staging/status-staging.txt | grep -oP '\d+(?=/)')
+          STAGING_FAILED=$((STAGING_TOTAL - STAGING_PASSED))
+      
+          PRODUCTION_TOTAL=$(cat test-output/status-production/status-production.txt | grep -oP '(?<=/)\d+')
+          PRODUCTION_PASSED=$(cat test-output/status-production/status-production.txt | grep -oP '\d+(?=/)')
+          PRODUCTION_FAILED=$((PRODUCTION_TOTAL - PRODUCTION_PASSED))
+      
+          # Calculate the total number of failed tests
+          TOTAL_FAILED=$((DEV_FAILED + STAGING_FAILED + PRODUCTION_FAILED))
+      
+          # Set the output
+          echo "total_failed=$TOTAL_FAILED" >> $GITHUB_OUTPUT
+          echo "total_failed=$TOTAL_FAILED"  # Debugging output
+            
+          
       # Consolidate status messages
       - name: Create summary of test statuses
         run: |
@@ -196,4 +222,25 @@ jobs:
           initial_comment: |
             Automation Testing Status for Admin Portal:
             ${{ env.STATUS_SUMMARY }}
+        
+      # Send Allure reports and statuses to Slack in case failing
+      - name: Send Allure Reports to Slack in case failing
+        if: ${{ steps.aggregate-failures.outputs.total_failed > 0 }}
+        uses: MeilCli/slack-upload-file@v4
+        with:
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_type: 'html'
+          file_path: |
+            test-output/allure-report-dev/allure-report-dev.html
+            test-output/allure-report-staging/allure-report-staging.html
+            test-output/allure-report-production/allure-report-production.html
+          file_name: |
+            allure-report-dev.html
+            allure-report-staging.html
+            allure-report-production.html
+          initial_comment: |
+            Automation Testing Status for Admin Portal:
+            ${{ env.STATUS_SUMMARY }} 
 
+            
