@@ -18,19 +18,13 @@ class TestModel:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        #Perform model preconditions
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID,Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+        (LoginPage(self.driver)
+         .login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID, Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+         .assert_success_login())
 
         # Initialize the ModelPage object with the driver instance
-        model_page = ModelPage(self.driver)
-
-        # Perform chassis actions
-        model_page.click_model_module()
-
-
-        # Assert and handle screenshot on failure
-        assert model_page.get_view_models() == True
+        (ModelPage(self.driver)
+         .click_model_module()
+         .assert_existing_models())
 
         take_screenshot(self.driver, "There_is_existing_models_screenshot")

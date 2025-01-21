@@ -18,17 +18,14 @@ class TestSecurity:
 
 
         #Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        #Perform Login preconditions
-        login_page.login_steps(Config.ATE_MANAGER_USERNAME_VALID,Config.ATE_MANAGER_PASSWORD_VALID)
+        (LoginPage(self.driver)
+         .login_steps(Config.ATE_MANAGER_USERNAME_VALID, Config.ATE_MANAGER_PASSWORD_VALID)
+         .assert_success_login())
 
         #Initialize the SecurityPage object with the driver instance
-        security_page = SecurityPage(self.driver)
-
-        #Perform security actions
-        security_page.click_security_module()
+        (SecurityPage(self.driver)
+         .click_security_module()
+         .assert_success_unauthorized())
 
         #Assert and handle screenshot on failure
-        assert security_page.get_unauthorized_text().is_displayed()
         take_screenshot(self.driver, "Unauthorized_access_screenshot")

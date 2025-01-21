@@ -16,22 +16,16 @@ class TestBatch:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        #Perform chassis preconditions
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID,Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+        (LoginPage(self.driver)
+         .login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID, Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+         .assert_success_login())
 
 
         # Initialize the ChassisPage object with the driver instance
-        batch_page = BatchPage(self.driver)
-
-        # Perform chassis actions
-        batch_page.click_model_module()
-        batch_page.click_view_button()
-        batch_page.click_see_batches()
-
-
-        # Assert and handle screenshot on failure
-        assert batch_page.get_view_batches() ==True
+        (BatchPage(self.driver)
+         .click_model_module()
+         .click_view_button()
+         .click_see_batches()
+         .assert_existing_batches())
 
         take_screenshot(self.driver, "There_is_existing_batches_screenshot")

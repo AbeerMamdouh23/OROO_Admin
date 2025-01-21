@@ -16,20 +16,14 @@ class TestProfile:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        #Perform profile preconditions
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID,Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+        (LoginPage(self.driver)
+         .login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID, Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+         .assert_success_login())
 
         # Initialize the ProfilePage object with the driver instance
-        profile_page = ProfilePage(self.driver)
-
-        # Perform profile actions
-        profile_page.click_profile_module()
-        profile_page.click_PGP_button()
-        profile_page.click_download_file_button()
-
-        # Assert and handle screenshot on failure
-        assert profile_page.get_download_file_button().is_displayed()
+        (ProfilePage(self.driver)
+         .click_profile_module()
+         .click_PGP_button()
+         .assert_success_display_download_file_button())
 
         take_screenshot(self.driver, "PGP_file_downloaded_successfully_screenshot")

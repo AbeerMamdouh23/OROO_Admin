@@ -17,15 +17,11 @@ class TestLogin:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        # Perform login actions with valid credentials
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID,Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
-
-        # Assert and handle screenshot on failure
-        assert login_page.get_dashboard_text().is_displayed()
+        (LoginPage(self.driver).enter_username(Config.PRODUCT_DIRECTOR_USERNAME_VALID)
+         .enter_password(Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+         .click_login_button()
+         .assert_success_login())
         take_screenshot(self.driver, "valid_login_screenshot")
-
 
 
     # Test case for invalid login with incorrect credentials using explicit wait
@@ -33,12 +29,8 @@ class TestLogin:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        # Perform login actions with invalid credentials
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_INVALID,Config.PRODUCT_DIRECTOR_PASSWORD_INVALID)
-
-
-        # Assert and handle screenshot on failure
-        assert "Invalid credentials" in  login_page.get_error_message()
-        take_screenshot(self.driver, "invalid_login_screenshot")
+        (LoginPage(self.driver).enter_username(Config.PRODUCT_DIRECTOR_USERNAME_INVALID)
+         .enter_password(Config.PRODUCT_DIRECTOR_PASSWORD_INVALID)
+         .click_login_button()
+         .assert_fail_login())
+        take_screenshot(self.driver, "Invalid_login_screenshot")

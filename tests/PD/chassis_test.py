@@ -16,18 +16,13 @@ class TestChassis:
         self.driver = setup  # Assign the driver from the fixture
 
         # Initialize the LoginPage object with the driver instance
-        login_page = LoginPage(self.driver)
-
-        #Perform chassis preconditions
-        login_page.login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID,Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+        (LoginPage(self.driver)
+         .login_steps(Config.PRODUCT_DIRECTOR_USERNAME_VALID, Config.PRODUCT_DIRECTOR_PASSWORD_VALID)
+         .assert_success_login())
 
         # Initialize the ChassisPage object with the driver instance
-        chassis_page = ChassisPage(self.driver)
-
-        # Perform chassis actions
-        chassis_page.click_chassis_module()
-
-        # Assert and handle screenshot on failure
-        assert chassis_page.get_view_chassis() == True
+        (ChassisPage(self.driver)
+         .click_chassis_module()
+         .assert_existing_chassis())
 
         take_screenshot(self.driver, "There_is_existing_chassis_screenshot")
