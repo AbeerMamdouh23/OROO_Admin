@@ -223,6 +223,7 @@ jobs:
             Automation Testing Status for Admin Portal:
             ${{ env.STATUS_SUMMARY }}
         
+            
       # Send Allure reports and statuses to Slack in case failing
       - name: Send Allure Reports to Slack in case failing
         if: ${{ steps.aggregate-failures.outputs.total_failed > 0 }}
@@ -240,7 +241,6 @@ jobs:
             allure-report-staging.html
             allure-report-production.html
           initial_comment: |
-            Automation Testing Status for Admin Portal:
-            ${{ env.STATUS_SUMMARY }} 
+            Automation Testing Status For Admin Portal:
+            ${{ env.STATUS_SUMMARY }}
 
-            
