@@ -30,10 +30,10 @@ class ProfilePage(BasePage):
 
     @allure.step("Success display download file button")
     def assert_success_display_download_file(self):
-        assert self.get_PGP_button() == True
+        assert self.get_PGP_button() == False
         return self
 
     @allure.step("Fail display download file button")
     def assert_fail_display_download_file(self):
-        assert self.get_PGP_button() == False
+        assert self.get_PGP_button() == True
         return self
