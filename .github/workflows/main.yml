@@ -106,29 +106,29 @@ jobs:
 
       # Download all statuses and reports
       - name: Download status files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: status-dev
           path: test-output/status-dev
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: status-staging
           path: test-output/status-staging
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: status-production
           path: test-output/status-production
 
       - name: Download Allure Reports
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: allure-report-dev
           path: test-output/allure-report-dev
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: allure-report-staging
           path: test-output/allure-report-staging
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: allure-report-production
           path: test-output/allure-report-production
