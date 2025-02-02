@@ -85,12 +85,12 @@ jobs:
 
       # Upload status message and Allure report artifacts
       - name: Upload status and Allure report artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact/merge@v4
         with:
           name: status-${{ matrix.env_name }}
           path: test-output/status-${{ matrix.env_name }}.txt
       - name: Upload Allure report artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact/merge@v4
         with:
           name: allure-report-${{ matrix.env_name }}
           path: test-output/allure-report-${{ matrix.env_name }}
